@@ -1,19 +1,23 @@
-.PHONY: up down logs mock dbt-build dbt-test
+.PHONY: up down generate dbt-build dbt-docs logs test
 
-up:            ## Tüm stack'i ayağa kaldır
+up:            ## docker compose up — full stack
 	docker compose up -d --build
 
-down:          ## Stack'i kapat
+down:          ## Stop the stack
 	docker compose down
 
-logs:          ## Logları izle
-	docker compose logs -f
-
-mock:          ## Sentetik veriyi üret ve source-db'ye bas
+generate:      ## Run mock-data/generate.py — synthetic data into source-db
 	docker compose run --rm mock-data python generate.py
 
 dbt-build:     ## dbt seed + run + test
 	docker compose run --rm dbt build
 
-dbt-test:      ## Sadece dbt testleri
-	docker compose run --rm dbt test
+dbt-docs:      ## dbt docs generate + serve
+	docker compose run --rm --service-ports dbt docs serve
+
+logs:          ## Open Grafana at localhost:3000 (and tail compose logs)
+	docker compose logs -f
+
+test:          ## pytest (api + ai-engine)
+	docker compose run --rm api pytest
+	docker compose run --rm ai-engine pytest
