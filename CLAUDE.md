@@ -87,7 +87,7 @@ Routers are thin. Logic lives in `services/`. DB access lives in `repositories/`
 |-------|-----------|
 | Data pipeline | dbt Core 1.11, Postgres 16, postgres_fdw |
 | APIs | FastAPI, Uvicorn, pydantic-settings |
-| AI | Anthropic Claude API (claude-sonnet-4-20250514) |
+| AI | Anthropic Claude API (claude-sonnet-4-6) |
 | BI | Apache Superset |
 | Observability | OpenTelemetry, Prometheus, Tempo, Grafana, structlog |
 | Infra | Docker Compose, GitHub Actions |
@@ -191,7 +191,7 @@ Never add `print()`. Use `structlog.get_logger()`.
 - `context_builder.py` is responsible for converting mart data into prompt context
 - Insight runners are triggered after `dbt build` completes (via Makefile or dbt `on-run-end` hook)
 - Scheduled runners (anomaly, recommendation) run on a timer inside the container
-- Claude model: always `claude-sonnet-4-20250514` — do not change without discussion
+- Claude model: always `claude-sonnet-4-6` — do not change without discussion
 - Token limits and retry logic are handled inside `claude_service.py` only
 
 ---
