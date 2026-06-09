@@ -1,0 +1,2 @@
+"""Finans endpoint şemaları."""
+# TODO

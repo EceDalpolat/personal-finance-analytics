@@ -1,0 +1,2 @@
+-- postgres_fdw: source-db'ye bağlan, raw_* şemaları altında foreign tabloları içe aktar.
+-- TODO

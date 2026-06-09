@@ -1,0 +1,2 @@
+-- Statik/referans seed verisi (kategoriler, para birimleri, merchant tipleri...).
+-- TODO

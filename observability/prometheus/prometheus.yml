@@ -1,0 +1,4 @@
+# Prometheus scrape config — api, ai-engine, otel-collector hedefleri.
+# TODO
+global:
+  scrape_interval: 15s

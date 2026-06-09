@@ -1,0 +1,2 @@
+-- source-db şeması: kişisel finans kaynak tabloları (users, accounts, transactions, budgets...).
+-- TODO: tablo tanımları.

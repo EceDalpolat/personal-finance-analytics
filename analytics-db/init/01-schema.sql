@@ -1,0 +1,2 @@
+-- analytics-db şemaları: staging_*, intermediate, marts_*, ai_layer (ai_insights tablosu dahil).
+-- TODO

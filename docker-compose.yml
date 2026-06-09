@@ -1,0 +1,8 @@
+# Personal Finance Analytics — tam stack.
+# Servisler: source-db, analytics-db, mock-data, dbt, api, ai-engine, superset, observability.
+# TODO: her servisin tanımı adım adım doldurulacak.
+services:
+  source-db:
+    image: postgres:16
+  analytics-db:
+    image: postgres:16
