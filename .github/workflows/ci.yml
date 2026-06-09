@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Static validation — fast, no services.
+  # --------------------------------------------------------------------------
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Validate docker compose config
+        run: docker compose --env-file .env.example config >/dev/null
+
+      - name: Byte-compile Python
+        run: python -m compileall -q mock-data api ai-engine
+
+  # --------------------------------------------------------------------------
+  # Data layer — apply schema + seed to a real Postgres, run the generator,
+  # and assert it produced sane data. This is the end-to-end check for the
+  # source-db + mock-data steps.
+  # --------------------------------------------------------------------------
+  data-layer:
+    runs-on: ubuntu-latest
+    services:
+      source-db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: finance
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: source
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U finance -d source"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: changeme
+      SOURCE_DB_HOST: localhost
+      SOURCE_DB_PORT: "5432"
+      SOURCE_DB_NAME: source
+      SOURCE_DB_USER: finance
+      SOURCE_DB_PASSWORD: changeme
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply schema + static seed
+        run: |
+          psql -h localhost -U finance -d source -v ON_ERROR_STOP=1 \
+            -f source-db/init/01-schema.sql
+          psql -h localhost -U finance -d source -v ON_ERROR_STOP=1 \
+            -f source-db/init/02-seed-static.sql
+
+      - name: Install generator deps
+        run: pip install -r mock-data/requirements.txt
+
+      - name: Generate synthetic data
+        run: python mock-data/generate.py
+
+      - name: Assert data was generated
+        run: |
+          python - <<'PY'
+          import os, psycopg
+          conn = psycopg.connect(
+              host="localhost", port=5432, dbname="source",
+              user="finance", password="changeme",
+          )
+          with conn.cursor() as cur:
+              def count(t):
+                  cur.execute(f"SELECT count(*) FROM core.{t}")
+                  return cur.fetchone()[0]
+              users = count("users")
+              txns = count("transactions")
+              balances = count("account_balances")
+              holdings = count("holdings")
+          print(f"users={users} txns={txns} balances={balances} holdings={holdings}")
+          assert users == 100, f"expected 100 users, got {users}"
+          assert txns > 50_000, f"expected >50k transactions, got {txns}"
+          assert balances > 0 and holdings > 0
+          # referential sanity: no transaction points at a missing category
+          with conn.cursor() as cur:
+              cur.execute("""
+                  SELECT count(*) FROM core.transactions t
+                  LEFT JOIN core.categories c USING (category_id)
+                  WHERE c.category_id IS NULL
+              """)
+              orphans = cur.fetchone()[0]
+          assert orphans == 0, f"{orphans} transactions reference unknown categories"
+          print("OK: data layer healthy")
+          PY
+
+  # --------------------------------------------------------------------------
+  # Added in later steps:
+  #   dbt:    dbt deps && dbt parse && dbt build && dbt test   (Step 4)
+  #   tests:  pytest for api + ai-engine                        (Step 5-6)
+  # --------------------------------------------------------------------------
