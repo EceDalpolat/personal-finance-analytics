@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: dim_user
+    description: "User dimension with peer-segment attributes."
+    columns:
+      - name: user_id
+        tests: [not_null, unique]
+
+  - name: dim_category
+    description: "Category dimension: leaf + rolled-up group."
+    columns:
+      - name: category_id
+        tests: [not_null, unique]
+
+  - name: fct_monthly_spending
+    description: "Expense spend per user / month / category group."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [user_id, txn_month, group_id]
+    columns:
+      - name: total_spend
+        tests: [not_null]
+
+  - name: fct_monthly_cashflow
+    description: "Income, spend, net cashflow per user / month."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [user_id, txn_month]
+
+  - name: fct_budget_variance
+    description: "Budget limit vs actual spend, one row per budget."
+    columns:
+      - name: budget_id
+        tests: [not_null, unique]
+      - name: status
+        tests:
+          - accepted_values: { values: ['over', 'near', 'under'] }
+
+  - name: fct_net_worth_monthly
+    description: "Net worth per user / month."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [user_id, balance_month]
+
+  - name: mart_peer_comparison
+    description: "User monthly spend vs income-band peer average."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [user_id, txn_month]

@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: mart_ai_context
+    description: "One row per user — compact financial summary consumed by the ai-engine."
+    columns:
+      - name: user_id
+        tests: [not_null, unique]
+      - name: latest_month
+        tests: [not_null]
+
+  - name: mart_ai_insights
+    description: "View over the ai-engine's ai.insights table."
+    columns:
+      - name: insight_id
+        tests: [not_null, unique]

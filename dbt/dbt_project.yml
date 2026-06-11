@@ -9,11 +9,20 @@ macro-paths: ["macros"]
 test-paths: ["tests"]
 snapshot-paths: ["snapshots"]
 
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
 models:
   finance_analytics:
     staging:
       +materialized: view
+      +schema: staging
     intermediate:
       +materialized: ephemeral
     marts:
       +materialized: table
+      finance:
+        +schema: marts
+      ai_layer:
+        +schema: ai_layer

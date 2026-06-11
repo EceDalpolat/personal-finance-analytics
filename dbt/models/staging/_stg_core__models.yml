@@ -1,0 +1,64 @@
+version: 2
+
+models:
+  - name: stg_core__users
+    description: "One row per user (1:1 with source)."
+    columns:
+      - name: user_id
+        tests: [not_null, unique]
+
+  - name: stg_core__accounts
+    description: "One row per account."
+    columns:
+      - name: account_id
+        tests: [not_null, unique]
+      - name: user_id
+        tests:
+          - not_null
+          - relationships: { to: ref('stg_core__users'), field: user_id }
+
+  - name: stg_core__categories
+    description: "Category taxonomy; leaves reference a parent group."
+    columns:
+      - name: category_id
+        tests: [not_null, unique]
+
+  - name: stg_core__merchants
+    columns:
+      - name: merchant_id
+        tests: [not_null, unique]
+
+  - name: stg_core__transactions
+    description: "Money movement, one row per transaction. debit=out, credit=in."
+    columns:
+      - name: transaction_id
+        tests: [not_null, unique]
+      - name: account_id
+        tests:
+          - not_null
+          - relationships: { to: ref('stg_core__accounts'), field: account_id }
+      - name: category_id
+        tests:
+          - not_null
+          - relationships: { to: ref('stg_core__categories'), field: category_id }
+      - name: direction
+        tests:
+          - accepted_values: { values: ['debit', 'credit'] }
+      - name: amount
+        tests: [not_null]
+
+  - name: stg_core__budgets
+    columns:
+      - name: budget_id
+        tests: [not_null, unique]
+
+  - name: stg_core__account_balances
+    columns:
+      - name: account_id
+        tests:
+          - relationships: { to: ref('stg_core__accounts'), field: account_id }
+
+  - name: stg_core__holdings
+    columns:
+      - name: holding_id
+        tests: [not_null, unique]

@@ -1,0 +1,11 @@
+{
+  // This project uses dbt Core (runs in Docker), not dbt Fusion.
+  // Recommend the Core-friendly "dbt Power User" extension and steer away
+  // from the official Fusion-based extension to avoid engine confusion.
+  "recommendations": [
+    "innoverio.vscode-dbt-power-user"
+  ],
+  "unwantedRecommendations": [
+    "dbtLabsInc.dbt"
+  ]
+}

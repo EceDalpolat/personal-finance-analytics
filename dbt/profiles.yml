@@ -1,0 +1,15 @@
+# dbt connection profile. Values come from environment variables (set on the
+# dbt service in docker-compose.yml). DBT_PROFILES_DIR points here (/app).
+finance_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('ANALYTICS_DB_HOST', 'analytics-db') }}"
+      port: "{{ env_var('ANALYTICS_DB_PORT', '5432') | int }}"
+      user: "{{ env_var('ANALYTICS_DB_USER', 'analytics') }}"
+      password: "{{ env_var('ANALYTICS_DB_PASSWORD', 'changeme') }}"
+      dbname: "{{ env_var('ANALYTICS_DB_NAME', 'analytics') }}"
+      schema: analytics
+      threads: 4
+      sslmode: disable
