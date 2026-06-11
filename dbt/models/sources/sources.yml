@@ -1,0 +1,85 @@
+version: 2
+
+sources:
+  # Foreign tables imported from source-db via postgres_fdw (schema raw_core).
+  - name: core
+    schema: raw_core
+    description: "Raw operational finance tables, mounted from source-db over FDW."
+    tables:
+      - name: users
+        columns:
+          - name: user_id
+            tests: [not_null, unique]
+          - name: email
+            tests: [not_null, unique]
+          - name: income_band
+            tests:
+              - accepted_values: { values: ['low', 'mid', 'high'] }
+      - name: accounts
+        columns:
+          - name: account_id
+            tests: [not_null, unique]
+          - name: user_id
+            tests:
+              - not_null
+              - relationships: { to: "source('core', 'users')", field: user_id }
+          - name: account_type
+            tests:
+              - accepted_values:
+                  values: ['checking', 'savings', 'credit_card', 'investment']
+      - name: categories
+        columns:
+          - name: category_id
+            tests: [not_null, unique]
+          - name: kind
+            tests:
+              - accepted_values: { values: ['expense', 'income'] }
+      - name: merchants
+        columns:
+          - name: merchant_id
+            tests: [not_null, unique]
+          - name: default_category_id
+            tests:
+              - relationships: { to: "source('core', 'categories')", field: category_id }
+      - name: transactions
+        columns:
+          - name: transaction_id
+            tests: [not_null, unique]
+          - name: account_id
+            tests:
+              - not_null
+              - relationships: { to: "source('core', 'accounts')", field: account_id }
+          - name: category_id
+            tests:
+              - not_null
+              - relationships: { to: "source('core', 'categories')", field: category_id }
+          - name: direction
+            tests:
+              - accepted_values: { values: ['debit', 'credit'] }
+      - name: budgets
+        columns:
+          - name: budget_id
+            tests: [not_null, unique]
+          - name: user_id
+            tests:
+              - relationships: { to: "source('core', 'users')", field: user_id }
+      - name: account_balances
+        columns:
+          - name: account_id
+            tests:
+              - not_null
+              - relationships: { to: "source('core', 'accounts')", field: account_id }
+      - name: holdings
+        columns:
+          - name: holding_id
+            tests: [not_null, unique]
+          - name: account_id
+            tests:
+              - relationships: { to: "source('core', 'accounts')", field: account_id }
+
+  # App-owned table in analytics-db, written by the ai-engine (not dbt-managed).
+  - name: ai
+    schema: ai
+    description: "AI-generated insights written back by the ai-engine."
+    tables:
+      - name: insights

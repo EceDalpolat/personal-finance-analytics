@@ -58,6 +58,22 @@ services:
         condition: service_healthy
     networks: [finance]
 
+  dbt:
+    build: ./dbt
+    profiles: ["tools"]          # run on demand: `make dbt-build`
+    environment:
+      ANALYTICS_DB_HOST: analytics-db
+      ANALYTICS_DB_PORT: "5432"
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+    volumes:
+      - ./dbt:/app          # live models without rebuilding the image
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    networks: [finance]
+
 volumes:
   source-db-data:
   analytics-db-data:

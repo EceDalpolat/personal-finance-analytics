@@ -1,0 +1,11 @@
+{
+  // Pin the dbt tooling to Core (not Fusion). This key is read by the
+  // "dbt Power User" extension; valid values: "core" | "cloud" | "fusion".
+  "dbt.dbtIntegration": "core",
+
+  // dbt builds run in Docker for this project; the extension is for editor
+  // intelligence only. Treat .sql as plain SQL when no jinja-sql grammar is present.
+  "files.associations": {
+    "*.sql": "sql"
+  }
+}

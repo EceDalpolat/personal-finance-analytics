@@ -22,4 +22,6 @@ dbt/logs/
 # OS / editor
 .DS_Store
 .idea/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
