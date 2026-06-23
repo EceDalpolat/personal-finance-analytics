@@ -267,6 +267,12 @@ chore(deps): add dbt-expectations to packages.yml
 Keep knowledge cumulative under `docs/` — write decisions with their "why" so
 future sessions build on what was already worked out.
 
+**Always update `docs/build-log.md` after completing a build step** — move the
+item from "Sıradaki adımlar" to "Tamamlananlar" with **what / why / commit hash**
+(mark "henüz commit'lenmedi" until committed). It is the single place to see which
+step the project is on; step ordering follows the service flow in `architecture.md`.
+
+- `docs/build-log.md` — step-by-step progress log (what's done, what's next)
 - `docs/architecture.md` — system design, data flow, service responsibilities
 - `docs/dbt/` — model conventions, layer philosophy, macro catalogue
 - `docs/ai-engine/` — prompt design, runner logic, context building strategy
