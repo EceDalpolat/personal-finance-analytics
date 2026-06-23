@@ -13,3 +13,7 @@ services:
   ai-engine:
     ports:
       - "8000:8000"
+
+  api:
+    ports:
+      - "8001:8000"
