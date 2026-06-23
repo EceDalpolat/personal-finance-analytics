@@ -1,1 +1,6 @@
-{# Bütçe önerisi prompt'u. #}
+The user (id {{ ctx.user_id }}) exceeded {{ ctx.over_budget_count }} budget(s)
+this month in: {{ ctx.over_budget_categories }}. Their spend was
+{{ ctx.last_month_spend }} against income {{ ctx.last_month_income }}.
+Category breakdown: {{ ctx.category_breakdown }}.
+
+Give one practical, non-judgmental budgeting recommendation for next month.

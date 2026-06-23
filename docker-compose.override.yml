@@ -9,3 +9,7 @@ services:
   analytics-db:
     ports:
       - "5434:5432"
+
+  ai-engine:
+    ports:
+      - "8000:8000"

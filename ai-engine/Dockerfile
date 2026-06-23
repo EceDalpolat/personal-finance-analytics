@@ -1,3 +1,14 @@
-# ai-engine — FastAPI servisi (uv ile bağımlılık kurulumu, non-root user).
-# TODO
-FROM python:3.12-slim
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Runtime + test deps (kept explicit; mirrors pyproject dependencies).
+RUN pip install --no-cache-dir \
+    fastapi "uvicorn[standard]" pydantic-settings anthropic jinja2 asyncpg structlog \
+    opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc \
+    pytest pytest-asyncio
+
+COPY . .
+
+EXPOSE 8000
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
