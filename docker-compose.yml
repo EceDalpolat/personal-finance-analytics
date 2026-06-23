@@ -91,6 +91,24 @@ services:
         condition: service_healthy
     networks: [finance]
 
+  api:
+    build: ./api
+    environment:
+      AI_ENGINE_URL: ${AI_ENGINE_URL:-http://ai-engine:8000}
+      SUPERSET_URL: ${SUPERSET_URL:-http://superset:8088}
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin}
+      ANALYTICS_DB_HOST: analytics-db
+      ANALYTICS_DB_PORT: "5432"
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    networks: [finance]
+
 volumes:
   source-db-data:
   analytics-db-data:
