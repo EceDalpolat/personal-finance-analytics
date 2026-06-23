@@ -1,1 +1,13 @@
-{# Kullanıcı sorusuna yanıt prompt'u. Değişkenler: {{ question }}, {{ context }} #}
+Here is the user's current financial summary (id {{ ctx.user_id }}):
+
+- Latest month: {{ ctx.latest_month }} — income {{ ctx.last_month_income }}, spend {{ ctx.last_month_spend }}, net {{ ctx.last_month_net }}
+- Top category: {{ ctx.top_category }} ({{ ctx.top_category_spend }})
+- Budgets exceeded: {{ ctx.over_budget_count }} ({{ ctx.over_budget_categories }})
+- Net worth: {{ ctx.net_worth_latest }} (6-month change {{ ctx.net_worth_6m_change }})
+- Peer comparison: {{ ctx.pct_of_peer }}% of same-income-band peers' spend
+- Category breakdown: {{ ctx.category_breakdown }}
+- 6-month spend trend: {{ ctx.monthly_spend_6m }}
+
+The user asks: "{{ question }}"
+
+Answer using only the data above. If the data can't answer it, say so. Be concise and specific.

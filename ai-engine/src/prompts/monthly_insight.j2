@@ -1,1 +1,13 @@
-{# Aylık finansal insight prompt'u. Değişkenler: {{ context }} #}
+The user (id {{ ctx.user_id }}, income band "{{ ctx.income_band }}") had this
+financial month ending {{ ctx.latest_month }}:
+
+- Income: {{ ctx.last_month_income }}, Spend: {{ ctx.last_month_spend }}, Net: {{ ctx.last_month_net }}
+- Top spending category: {{ ctx.top_category }} ({{ ctx.top_category_spend }})
+- Budgets exceeded: {{ ctx.over_budget_count }} ({{ ctx.over_budget_categories }})
+- Net worth: {{ ctx.net_worth_latest }} (6-month change: {{ ctx.net_worth_6m_change }})
+- Peer avg spend (same income band): {{ ctx.peer_avg_spend }} — user is at {{ ctx.pct_of_peer }}% of peers
+- Spend by category this month: {{ ctx.category_breakdown }}
+- Last 6 months spend trend: {{ ctx.monthly_spend_6m }}
+
+Write one concise, encouraging monthly insight that highlights the single most
+important pattern and one concrete suggestion. Be specific with numbers.

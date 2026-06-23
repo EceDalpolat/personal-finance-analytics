@@ -1,1 +1,9 @@
-{# Harcama anomali tespiti prompt'u. #}
+Review this user's recent spending for anomalies (id {{ ctx.user_id }}):
+
+- This month's spend: {{ ctx.last_month_spend }} vs peer avg {{ ctx.peer_avg_spend }} ({{ ctx.pct_of_peer }}% of peers)
+- Last 6 months spend trend: {{ ctx.monthly_spend_6m }}
+- Category breakdown: {{ ctx.category_breakdown }}
+- Budgets exceeded: {{ ctx.over_budget_count }} ({{ ctx.over_budget_categories }})
+
+If there is a clear anomaly (an unusual spike vs the user's own trend or vs
+peers), describe it plainly. If nothing stands out, say spending looks normal.

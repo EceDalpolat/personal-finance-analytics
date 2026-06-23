@@ -74,6 +74,23 @@ services:
         condition: service_healthy
     networks: [finance]
 
+  ai-engine:
+    build: ./ai-engine
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AI_MODEL_ID: ${AI_MODEL_ID:-claude-sonnet-4-6}
+      AI_EFFORT: ${AI_EFFORT:-medium}
+      ANALYTICS_DB_HOST: analytics-db
+      ANALYTICS_DB_PORT: "5432"
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    networks: [finance]
+
 volumes:
   source-db-data:
   analytics-db-data:
