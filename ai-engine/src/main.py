@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from .config import get_settings
 from .core.logging import configure_logging, get_logger
 from .core.middleware import RequestContextMiddleware, register_exception_handlers
-from .core.tracing import configure_tracing
+from .core.tracing import configure_tracing, instrument_app
 from .routers import chat, health, insights
 from .services.claude_service import ClaudeService
 from .services.context_builder import ContextBuilder
@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="ai-engine", version="0.1.0", lifespan=lifespan)
+    instrument_app(app)
     app.add_middleware(RequestContextMiddleware)
     register_exception_handlers(app)
     app.include_router(health.router)

@@ -1,0 +1,12 @@
+# Grafana datasources, auto-provisioned at startup. Traces are explored via
+# Explore -> Tempo. (Prometheus datasource lands with the metrics slice.)
+
+apiVersion: 1
+
+datasources:
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    uid: tempo
+    isDefault: true
