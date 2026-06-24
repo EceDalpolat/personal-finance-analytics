@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from .config import get_settings
 from .core.logging import configure_logging, get_logger
 from .core.middleware import RequestContextMiddleware, register_exception_handlers
-from .core.tracing import configure_tracing
+from .core.tracing import configure_tracing, instrument_app
 from .routers import chat, finance, health, superset
 
 
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="api", version="0.1.0", lifespan=lifespan)
+    instrument_app(app)
     app.add_middleware(RequestContextMiddleware)
     register_exception_handlers(app)
     app.include_router(health.router)

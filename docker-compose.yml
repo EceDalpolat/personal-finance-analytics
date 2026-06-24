@@ -85,7 +85,7 @@ services:
       ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
       ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
       ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
     depends_on:
       analytics-db:
         condition: service_healthy
@@ -103,15 +103,47 @@ services:
       ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
       ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
       ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
     depends_on:
       analytics-db:
         condition: service_healthy
     networks: [finance]
 
+  # --- observability stack: traces flow api/ai-engine -> collector -> Tempo -> Grafana ---
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.119.0
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./observability/otel-collector/config.yaml:/etc/otel/config.yaml:ro
+    depends_on: [tempo]
+    networks: [finance]
+
+  tempo:
+    image: grafana/tempo:2.7.1
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    networks: [finance]
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [tempo]
+    networks: [finance]
+
 volumes:
   source-db-data:
   analytics-db-data:
+  tempo-data:
+  grafana-data:
 
 networks:
   finance:

@@ -1,7 +1,7 @@
-"""OpenTelemetry tracing setup. Exports to the OTel collector when
-OTEL_EXPORTER_OTLP_ENDPOINT is set; otherwise spans are created but not
-exported (no-op exporter) so the app runs anywhere. Full collector wiring
-and auto-instrumentation land in the observability step."""
+"""OpenTelemetry tracing. configure_tracing() sets up the provider and exports
+to the OTel collector when OTEL_EXPORTER_OTLP_ENDPOINT is set (otherwise spans
+are created but not exported, so the app runs anywhere). instrument_app()
+auto-instruments FastAPI + asyncpg + httpx."""
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
@@ -24,6 +24,18 @@ def configure_tracing(service_name: str, otlp_endpoint: str | None) -> None:
         )
     trace.set_tracer_provider(provider)
     _configured = True
+
+
+def instrument_app(app) -> None:
+    """Auto-instrument the FastAPI app and its outbound clients (asyncpg for the
+    DB pool, httpx for the Anthropic SDK). Call once when the app is created."""
+    from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+
+    FastAPIInstrumentor.instrument_app(app)
+    AsyncPGInstrumentor().instrument()
+    HTTPXClientInstrumentor().instrument()
 
 
 def get_tracer(name: str = "ai-engine"):

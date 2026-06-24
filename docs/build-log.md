@@ -10,13 +10,26 @@ Sıralama `docs/architecture.md`'deki veri akışını izler:
 
 ## 🔜 Sıradaki adımlar
 
-- [ ] **Observability collector wiring** — `observability/` (OTel collector + Prometheus + Tempo + Grafana). `OTEL_EXPORTER_OTLP_ENDPOINT` set edilince ai-engine ve api trace'leri aksın. İki servisin `core/tracing.py`'sindeki "lands in the observability step" notu bunu bekliyor.
+- [ ] **Observability — metrics dilimi** — Prometheus servisi + collector'a spanmetrics connector (trace'ten türetilen metrikler) + Grafana'ya Prometheus datasource ve hazır dashboard. (Trace dilimi tamamlandı — bkz. adım 8.)
 - [ ] **Superset dashboard config** — `superset/` (datasource bağlantısı, embedded dashboard, api'nin guest-token'ı ile embed entegrasyonu).
 - [ ] **Scheduled runner'lar** — ai-engine'de anomaly/recommendation runner sınıfları var ama container içinde timer ile tetikleyen scheduler yok (CLAUDE.md: "scheduled runners run on a timer inside the container").
 
 ---
 
 ## ✅ Tamamlananlar
+
+### 8. Observability — trace dilimi (uçtan uca)
+**Commit:** _(henüz commit'lenmedi)_
+
+api/ai-engine → OTel collector → Tempo → Grafana trace akışı kuruldu.
+- `observability/otel-collector/config.yaml` — OTLP receiver (gRPC 4317 / HTTP 4318) → Tempo'ya `otlp/tempo` exporter (+ debug).
+- `observability/tempo/tempo.yaml` — single-binary Tempo, OTLP gRPC alır, HTTP API :3200.
+- `observability/grafana/provisioning/datasources/datasources.yaml` — Tempo datasource (Explore'dan trace gezilir); anonim erişim açık.
+- `docker-compose.yml` — `otel-collector`, `tempo`, `grafana` servisleri + `tempo-data`/`grafana-data` volume'leri; ai-engine ve api'nin `OTEL_EXPORTER_OTLP_ENDPOINT` default'u `http://otel-collector:4317`'e çekildi. Override'a Grafana `3000:3000`.
+- **Kod**: iki serviste `core/tracing.py`'ye `instrument_app()` — FastAPI + asyncpg + httpx auto-instrumentation; `main.py`'de `create_app`'te çağrıldı; pyproject + Dockerfile'a `opentelemetry-instrumentation-{fastapi,asyncpg,httpx}` eklendi.
+- Doğrulama: api 7 / ai-engine 2 test geçti, iki servis temiz import, `docker compose config` geçerli, 3 YAML config lint'lendi.
+
+**Neden:** Her isteğin HTTP + DB + dış çağrı span'leri ve Claude çağrı metrikleri Tempo'da toplanıp Grafana'da görünür olsun. `tracing.py`'lerdeki "lands in the observability step" notu artık karşılandı. Metric/dashboard dilimi sıradaki adımda.
 
 ### 7. api servisi — public-facing katman
 **Commit:** `72c11e6` (PR #4 → `6176a13` ile main'e merge)

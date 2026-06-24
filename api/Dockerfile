@@ -6,6 +6,8 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     fastapi "uvicorn[standard]" pydantic-settings httpx asyncpg structlog \
     opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc \
+    opentelemetry-instrumentation-fastapi opentelemetry-instrumentation-asyncpg \
+    opentelemetry-instrumentation-httpx \
     pytest pytest-asyncio
 
 COPY . .
