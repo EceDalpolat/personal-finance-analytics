@@ -10,13 +10,25 @@ Sıralama `docs/architecture.md`'deki veri akışını izler:
 
 ## 🔜 Sıradaki adımlar
 
-- [ ] **Observability — metrics dilimi** — Prometheus servisi + collector'a spanmetrics connector (trace'ten türetilen metrikler) + Grafana'ya Prometheus datasource ve hazır dashboard. (Trace dilimi tamamlandı — bkz. adım 8.)
 - [ ] **Superset dashboard config** — `superset/` (datasource bağlantısı, embedded dashboard, api'nin guest-token'ı ile embed entegrasyonu).
 - [ ] **Scheduled runner'lar** — ai-engine'de anomaly/recommendation runner sınıfları var ama container içinde timer ile tetikleyen scheduler yok (CLAUDE.md: "scheduled runners run on a timer inside the container").
 
 ---
 
 ## ✅ Tamamlananlar
+
+### 9. Observability — metrics dilimi
+**Commit:** _(henüz commit'lenmedi)_
+
+Span'lerden türetilen RED metrikleri (rate/error/duration) Prometheus'a, oradan Grafana dashboard'una bağlandı.
+- `observability/otel-collector/config.yaml` — `spanmetrics` connector eklendi; traces pipeline'ı spanmetrics'e de export ediyor, yeni `metrics` pipeline'ı (otlp + spanmetrics → `prometheus` exporter :8889).
+- `observability/prometheus/prometheus.yml` — TODO'dan gerçek config'e: `otel-collector:8889` + self-scrape, 15s interval.
+- `observability/grafana/provisioning/datasources/datasources.yaml` — Prometheus datasource (`uid: prometheus`).
+- `observability/grafana/provisioning/dashboards/dashboards.yaml` + `observability/grafana/dashboards/service-overview.json` — auto-provision edilen "Service Overview" dashboard'u: servis bazında istek oranı, hata oranı, p95 latency (servis + endpoint).
+- `docker-compose.yml` — `prometheus` servisi (`prom/prometheus:v3.2.1`) + `prometheus-data` volume; grafana artık prometheus'a da depends_on.
+- Doğrulama: `docker compose config -q` geçerli, 4 YAML + dashboard JSON lint'lendi. (Collector config'in image ile runtime validate'i Docker daemon kapalı olduğundan yapılamadı — `make up` ile ilk açılışta doğrulanmalı.)
+
+**Neden:** Trace dilimi (adım 8) span'leri Tempo'ya taşıyordu ama metrik yoktu; spanmetrics connector ile ayrı bir metrics SDK kurulumu gerekmeden her servisin RED metrikleri Grafana'da hazır dashboard olarak görünür. Observability adımı böylece tamamlandı.
 
 ### 8. Observability — trace dilimi (uçtan uca)
 **Commit:** `984811b` (PR #7 → `873b003` ile main'e merge)

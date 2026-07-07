@@ -1,5 +1,5 @@
 # Grafana datasources, auto-provisioned at startup. Traces are explored via
-# Explore -> Tempo. (Prometheus datasource lands with the metrics slice.)
+# Explore -> Tempo; span-derived metrics via Prometheus.
 
 apiVersion: 1
 
@@ -10,3 +10,9 @@ datasources:
     url: http://tempo:3200
     uid: tempo
     isDefault: true
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    uid: prometheus

@@ -1,5 +1,6 @@
-# OpenTelemetry Collector — receives OTLP from api/ai-engine and forwards traces
-# to Tempo. (Metrics/Prometheus pipeline lands in the next observability slice.)
+# OpenTelemetry Collector — receives OTLP from api/ai-engine, forwards traces
+# to Tempo, and derives RED metrics from spans (spanmetrics connector) which
+# Prometheus scrapes from :8889.
 
 receivers:
   otlp:
@@ -9,6 +10,9 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
+connectors:
+  spanmetrics: {}
+
 processors:
   batch: {}
 
@@ -17,6 +21,8 @@ exporters:
     endpoint: tempo:4317
     tls:
       insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
   debug:
     verbosity: basic
 
@@ -25,4 +31,8 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/tempo, debug]
+      exporters: [otlp/tempo, spanmetrics, debug]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [prometheus]
