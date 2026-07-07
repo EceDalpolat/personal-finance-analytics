@@ -10,12 +10,24 @@ Sıralama `docs/architecture.md`'deki veri akışını izler:
 
 ## 🔜 Sıradaki adımlar
 
-- [ ] **Superset dashboard config** — `superset/` (datasource bağlantısı, embedded dashboard, api'nin guest-token'ı ile embed entegrasyonu).
+- [ ] **Superset dashboard içerikleri** — `analytics` datasource'u üzerinden dataset + chart + dashboard oluşturup (UI veya `superset import-dashboards` export'u ile) `dashboard_id`'yi embed akışına bağlamak. (Altyapı — servis, embedded config, guest token — adım 10'da tamamlandı.)
 - [ ] **Scheduled runner'lar** — ai-engine'de anomaly/recommendation runner sınıfları var ama container içinde timer ile tetikleyen scheduler yok (CLAUDE.md: "scheduled runners run on a timer inside the container").
 
 ---
 
 ## ✅ Tamamlananlar
+
+### 10. Superset — servis + embedded altyapısı
+**Commit:** _(henüz commit'lenmedi)_
+
+Superset compose stack'ine eklendi; embedded dashboard + guest token altyapısı hazır.
+- `superset/superset_config.py` — TODO'dan gerçek config'e: `EMBEDDED_SUPERSET` feature flag, `GUEST_ROLE_NAME=Gamma`, 300s guest token TTL, iframe embed için Talisman kapalı + CORS açık; metadata DB `superset-data` volume'ünde SQLite (analitik veri zaten analytics-db'de).
+- `superset/init.sh` — idempotent bootstrap: `db upgrade` → admin kullanıcı → `superset init` → `set_database_uri` ile analytics-db'yi `analytics` datasource'u olarak kaydeder.
+- `docker-compose.yml` — `superset-init` (one-shot, analytics-db healthy sonrası) + `superset` (init başarıyla bitince başlar, `apache/superset:4.1.2`) servisleri, `superset-data` volume'ü; override'a `8088:8088`.
+- api tarafı zaten hazırdı (adım 7): `superset_service.py` login → guest_token akışı, RLS `user_id` scoping.
+- Doğrulama: `docker compose config -q` geçerli, `bash -n init.sh` ve `py_compile superset_config.py` temiz. (Docker daemon kapalı — uçtan uca `make up` doğrulaması ilk açılışta yapılmalı.)
+
+**Neden:** api'nin mint ettiği guest token'ın karşılığı olan Superset servisi stack'te yoktu; bu adımla embed edilebilir, RLS-scoped dashboard servis edecek altyapı tamam. Dashboard içerikleri (dataset/chart) sıradaki adımda.
 
 ### 9. Observability — metrics dilimi
 **Commit:** _(henüz commit'lenmedi)_

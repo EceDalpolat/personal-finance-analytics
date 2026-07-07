@@ -109,6 +109,38 @@ services:
         condition: service_healthy
     networks: [finance]
 
+  # --- Superset: embedded BI. superset-init bootstraps (migrate, admin, analytics DB), then the server starts. ---
+  superset-init:
+    image: apache/superset:4.1.2
+    command: ["/app/init.sh"]
+    environment: &superset-env
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_CONFIG_PATH: /app/superset_config.py
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
+    volumes:
+      - ./superset/superset_config.py:/app/superset_config.py:ro
+      - ./superset/init.sh:/app/init.sh:ro
+      - superset-data:/app/superset_home
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    networks: [finance]
+
+  superset:
+    image: apache/superset:4.1.2
+    environment: *superset-env
+    volumes:
+      - ./superset/superset_config.py:/app/superset_config.py:ro
+      - superset-data:/app/superset_home
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    networks: [finance]
+
   # --- observability stack: api/ai-engine -> collector -> Tempo (traces) + Prometheus (metrics) -> Grafana ---
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.119.0
@@ -152,6 +184,7 @@ volumes:
   source-db-data:
   analytics-db-data:
   tempo-data:
+  superset-data:
   prometheus-data:
   grafana-data:
 
