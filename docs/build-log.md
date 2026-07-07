@@ -1,102 +1,102 @@
-# Build Log — İlerleme Kaydı
+# Build Log — Progress Record
 
-Projenin hangi adımda olduğunu takip etmek için tutulan kümülatif kayıt.
-Her adım: **ne yapıldı**, **neden**, ve **commit** referansı. En üstte sıradakiler.
+A cumulative record of which step the project is on.
+Each step: **what was done**, **why**, and a **commit** reference. Upcoming items at the top.
 
-Sıralama `docs/architecture.md`'deki veri akışını izler:
+Ordering follows the data flow in `docs/architecture.md`:
 `mock-data → source-db → analytics-db (FDW) → dbt → ai-engine → api → superset → observability`
 
 ---
 
-## 🔜 Sıradaki adımlar
+## 🔜 Next steps
 
-- [ ] **Superset dashboard içerikleri** — `analytics` datasource'u üzerinden dataset + chart + dashboard oluşturup (UI veya `superset import-dashboards` export'u ile) `dashboard_id`'yi embed akışına bağlamak. (Altyapı — servis, embedded config, guest token — adım 10'da tamamlandı.)
-- [ ] **Scheduled runner'lar** — ai-engine'de anomaly/recommendation runner sınıfları var ama container içinde timer ile tetikleyen scheduler yok (CLAUDE.md: "scheduled runners run on a timer inside the container").
+- [ ] **Superset dashboard content** — create datasets + charts + a dashboard on the `analytics` datasource (via the UI or a `superset import-dashboards` export) and wire the `dashboard_id` into the embed flow. (Infrastructure — service, embedded config, guest tokens — was completed in step 10.)
+- [ ] **Scheduled runners** — ai-engine has anomaly/recommendation runner classes but no scheduler triggering them on a timer inside the container (CLAUDE.md: "scheduled runners run on a timer inside the container").
 
 ---
 
-## ✅ Tamamlananlar
+## ✅ Completed
 
-### 10. Superset — servis + embedded altyapısı
-**Commit:** _(henüz commit'lenmedi)_
+### 10. Superset — service + embedded infrastructure
+**Commit:** _(not committed yet)_
 
-Superset compose stack'ine eklendi; embedded dashboard + guest token altyapısı hazır.
-- `superset/superset_config.py` — TODO'dan gerçek config'e: `EMBEDDED_SUPERSET` feature flag, `GUEST_ROLE_NAME=Gamma`, 300s guest token TTL, iframe embed için Talisman kapalı + CORS açık; metadata DB `superset-data` volume'ünde SQLite (analitik veri zaten analytics-db'de).
-- `superset/init.sh` — idempotent bootstrap: `db upgrade` → admin kullanıcı → `superset init` → `set_database_uri` ile analytics-db'yi `analytics` datasource'u olarak kaydeder.
-- `docker-compose.yml` — `superset-init` (one-shot, analytics-db healthy sonrası) + `superset` (init başarıyla bitince başlar, `apache/superset:4.1.2`) servisleri, `superset-data` volume'ü; override'a `8088:8088`.
-- api tarafı zaten hazırdı (adım 7): `superset_service.py` login → guest_token akışı, RLS `user_id` scoping.
-- Doğrulama: `docker compose config -q` geçerli, `bash -n init.sh` ve `py_compile superset_config.py` temiz. (Docker daemon kapalı — uçtan uca `make up` doğrulaması ilk açılışta yapılmalı.)
+Superset added to the compose stack; embedded dashboard + guest token infrastructure is in place.
+- `superset/superset_config.py` — from TODO to a real config: `EMBEDDED_SUPERSET` feature flag, `GUEST_ROLE_NAME=Gamma`, 300s guest token TTL, Talisman disabled + CORS enabled for iframe embeds; metadata DB is SQLite on the `superset-data` volume (analytical data already lives in analytics-db).
+- `superset/init.sh` — idempotent bootstrap: `db upgrade` → admin user → `superset init` → registers analytics-db as the `analytics` datasource via `set_database_uri`.
+- `docker-compose.yml` — `superset-init` (one-shot, after analytics-db is healthy) + `superset` (starts once init completes successfully, `apache/superset:4.1.2`) services, `superset-data` volume; `8088:8088` in the override.
+- The api side was already done (step 7): `superset_service.py` login → guest_token flow, RLS `user_id` scoping.
+- Verification: `docker compose config -q` valid, `bash -n init.sh` and `py_compile superset_config.py` clean. (Docker daemon was down — end-to-end `make up` verification pending on first startup.)
 
-**Neden:** api'nin mint ettiği guest token'ın karşılığı olan Superset servisi stack'te yoktu; bu adımla embed edilebilir, RLS-scoped dashboard servis edecek altyapı tamam. Dashboard içerikleri (dataset/chart) sıradaki adımda.
+**Why:** the Superset service backing the guest tokens minted by the api was missing from the stack; with this step the infrastructure to serve embeddable, RLS-scoped dashboards is complete. Dashboard content (datasets/charts) is the next step.
 
-### 9. Observability — metrics dilimi
-**Commit:** _(henüz commit'lenmedi)_
+### 9. Observability — metrics slice
+**Commit:** `9472d0f` (PR #8 → merged to main as `677a521`)
 
-Span'lerden türetilen RED metrikleri (rate/error/duration) Prometheus'a, oradan Grafana dashboard'una bağlandı.
-- `observability/otel-collector/config.yaml` — `spanmetrics` connector eklendi; traces pipeline'ı spanmetrics'e de export ediyor, yeni `metrics` pipeline'ı (otlp + spanmetrics → `prometheus` exporter :8889).
-- `observability/prometheus/prometheus.yml` — TODO'dan gerçek config'e: `otel-collector:8889` + self-scrape, 15s interval.
+RED metrics (rate/error/duration) derived from spans wired into Prometheus and a Grafana dashboard.
+- `observability/otel-collector/config.yaml` — added the `spanmetrics` connector; the traces pipeline also exports to spanmetrics, and a new `metrics` pipeline (otlp + spanmetrics → `prometheus` exporter :8889).
+- `observability/prometheus/prometheus.yml` — from TODO to a real config: `otel-collector:8889` + self-scrape, 15s interval.
 - `observability/grafana/provisioning/datasources/datasources.yaml` — Prometheus datasource (`uid: prometheus`).
-- `observability/grafana/provisioning/dashboards/dashboards.yaml` + `observability/grafana/dashboards/service-overview.json` — auto-provision edilen "Service Overview" dashboard'u: servis bazında istek oranı, hata oranı, p95 latency (servis + endpoint).
-- `docker-compose.yml` — `prometheus` servisi (`prom/prometheus:v3.2.1`) + `prometheus-data` volume; grafana artık prometheus'a da depends_on.
-- Doğrulama: `docker compose config -q` geçerli, 4 YAML + dashboard JSON lint'lendi. (Collector config'in image ile runtime validate'i Docker daemon kapalı olduğundan yapılamadı — `make up` ile ilk açılışta doğrulanmalı.)
+- `observability/grafana/provisioning/dashboards/dashboards.yaml` + `observability/grafana/dashboards/service-overview.json` — auto-provisioned "Service Overview" dashboard: request rate, error rate, and p95 latency per service (+ per endpoint).
+- `docker-compose.yml` — `prometheus` service (`prom/prometheus:v3.2.1`) + `prometheus-data` volume; grafana now also depends_on prometheus.
+- Verification: `docker compose config -q` valid, 4 YAML files + dashboard JSON linted. (Runtime validation of the collector config against the image wasn't possible with the Docker daemon down — verify on first `make up`.)
 
-**Neden:** Trace dilimi (adım 8) span'leri Tempo'ya taşıyordu ama metrik yoktu; spanmetrics connector ile ayrı bir metrics SDK kurulumu gerekmeden her servisin RED metrikleri Grafana'da hazır dashboard olarak görünür. Observability adımı böylece tamamlandı.
+**Why:** the traces slice (step 8) shipped spans to Tempo but there were no metrics; with the spanmetrics connector every service gets RED metrics on a ready-made Grafana dashboard without installing a separate metrics SDK. This completes the observability step.
 
-### 8. Observability — trace dilimi (uçtan uca)
-**Commit:** `984811b` (PR #7 → `873b003` ile main'e merge)
+### 8. Observability — traces slice (end to end)
+**Commit:** `984811b` (PR #7 → merged to main as `873b003`)
 
-api/ai-engine → OTel collector → Tempo → Grafana trace akışı kuruldu.
-- `observability/otel-collector/config.yaml` — OTLP receiver (gRPC 4317 / HTTP 4318) → Tempo'ya `otlp/tempo` exporter (+ debug).
-- `observability/tempo/tempo.yaml` — single-binary Tempo, OTLP gRPC alır, HTTP API :3200.
-- `observability/grafana/provisioning/datasources/datasources.yaml` — Tempo datasource (Explore'dan trace gezilir); anonim erişim açık.
-- `docker-compose.yml` — `otel-collector`, `tempo`, `grafana` servisleri + `tempo-data`/`grafana-data` volume'leri; ai-engine ve api'nin `OTEL_EXPORTER_OTLP_ENDPOINT` default'u `http://otel-collector:4317`'e çekildi. Override'a Grafana `3000:3000`.
-- **Kod**: iki serviste `core/tracing.py`'ye `instrument_app()` — FastAPI + asyncpg + httpx auto-instrumentation; `main.py`'de `create_app`'te çağrıldı; pyproject + Dockerfile'a `opentelemetry-instrumentation-{fastapi,asyncpg,httpx}` eklendi.
-- Doğrulama: api 7 / ai-engine 2 test geçti, iki servis temiz import, `docker compose config` geçerli, 3 YAML config lint'lendi.
+The api/ai-engine → OTel collector → Tempo → Grafana trace flow was set up.
+- `observability/otel-collector/config.yaml` — OTLP receiver (gRPC 4317 / HTTP 4318) → `otlp/tempo` exporter to Tempo (+ debug).
+- `observability/tempo/tempo.yaml` — single-binary Tempo, accepts OTLP gRPC, HTTP API on :3200.
+- `observability/grafana/provisioning/datasources/datasources.yaml` — Tempo datasource (traces browsable via Explore); anonymous access enabled.
+- `docker-compose.yml` — `otel-collector`, `tempo`, `grafana` services + `tempo-data`/`grafana-data` volumes; the `OTEL_EXPORTER_OTLP_ENDPOINT` default for ai-engine and api set to `http://otel-collector:4317`. Grafana `3000:3000` in the override.
+- **Code**: `instrument_app()` in `core/tracing.py` of both services — FastAPI + asyncpg + httpx auto-instrumentation; called from `create_app` in `main.py`; `opentelemetry-instrumentation-{fastapi,asyncpg,httpx}` added to pyproject + Dockerfile.
+- Verification: api 7 / ai-engine 2 tests passed, both services import cleanly, `docker compose config` valid, 3 YAML configs linted.
 
-**Neden:** Her isteğin HTTP + DB + dış çağrı span'leri ve Claude çağrı metrikleri Tempo'da toplanıp Grafana'da görünür olsun. `tracing.py`'lerdeki "lands in the observability step" notu artık karşılandı. Metric/dashboard dilimi sıradaki adımda.
+**Why:** every request's HTTP + DB + outbound-call spans and Claude call metrics should be collected in Tempo and visible in Grafana. The "lands in the observability step" note in the `tracing.py` files is now fulfilled. The metrics/dashboard slice followed as the next step.
 
-### 7. api servisi — public-facing katman
-**Commit:** `72c11e6` (PR #4 → `6176a13` ile main'e merge)
+### 7. api service — public-facing layer
+**Commit:** `72c11e6` (PR #4 → merged to main as `6176a13`)
 
-ai-engine ile aynı `core/` pattern'i izlenerek `api/` stub'ları gerçek implementasyona çevrildi.
-- `core/`: structlog JSON logging, OTel tracing, request-context middleware, typed exception hiyerarşisi (`ApiError`, `UserNotFoundError`, `AIEngineError`, `AIEngineRateLimitError`, `SupersetError`).
-- **finance**: `marts.*` şemasından read-only endpoint'ler (summary, cashflow, spending, net-worth, peer-comparison), repo → service → router katmanlı.
-- **chat**: `AIEngineClient` ile ai-engine'e proxy — api Claude'u **doğrudan çağırmaz** (CLAUDE.md kuralı); 429→rate-limit, 5xx→ai_engine_error eşlemesi.
-- **superset**: login → guest_token akışı, her token `user_id` ile **RLS-scoped** (per-user güvenlik kuralı).
-- main/config/dependencies wiring, Dockerfile, pyproject (OTel + pytest), docker-compose `api` servisi + `8001:8000` portu, `.env.example` güncellendi.
-- Unit testler: finance shaping, RLS scoping, proxy hata eşlemesi — **7 passed**.
+Following the same `core/` pattern as ai-engine, the `api/` stubs were turned into a real implementation.
+- `core/`: structlog JSON logging, OTel tracing, request-context middleware, typed exception hierarchy (`ApiError`, `UserNotFoundError`, `AIEngineError`, `AIEngineRateLimitError`, `SupersetError`).
+- **finance**: read-only endpoints over the `marts.*` schema (summary, cashflow, spending, net-worth, peer-comparison), layered repo → service → router.
+- **chat**: proxied to ai-engine via `AIEngineClient` — the api **never** calls Claude directly (CLAUDE.md rule); 429→rate-limit, 5xx→ai_engine_error mapping.
+- **superset**: login → guest_token flow, every token **RLS-scoped** by `user_id` (per-user security rule).
+- main/config/dependencies wiring, Dockerfile, pyproject (OTel + pytest), docker-compose `api` service + `8001:8000` port, `.env.example` updated.
+- Unit tests: finance shaping, RLS scoping, proxy error mapping — **7 passed**.
 
-**Neden:** Kullanıcıya bakan tek giriş noktası; marts'tan veri okur, chat'i içeri proxy'ler, Superset embed için güvenli token üretir.
+**Why:** the single user-facing entry point; reads data from marts, proxies chat inward, and mints secure tokens for Superset embeds.
 
-### 6. ai-engine — AI motoru implementasyonu
+### 6. ai-engine — AI engine implementation
 **Commit:** `354245e` (2026-06-23)
 
-TODO-stub'lar gerçek implementasyona çevrildi: insight/anomaly/recommendation runner'lar, `ClaudeService` (güncel `output_config.format` structured output + adaptive thinking API'si, model `claude-sonnet-4-6`), context/insight repo'ları, chat & insights router'ları, Jinja2 prompt'lar, observability `core/` katmanı. Unit test (`test_insight_runner`) — 2 passed.
+TODO stubs turned into a real implementation: insight/anomaly/recommendation runners, `ClaudeService` (current `output_config.format` structured output + adaptive thinking API, model `claude-sonnet-4-6`), context/insight repositories, chat & insights routers, Jinja2 prompts, observability `core/` layer. Unit test (`test_insight_runner`) — 2 passed.
 
-**Neden:** mart çıktısını okuyup Claude ile insight üretip `ai_layer`'a geri yazan iç servis.
+**Why:** the internal service that reads mart output, generates insights with Claude, and writes them back to `ai_layer`.
 
 ### 5. dbt pipeline + walkthrough
-**Commit:** `fbbe3cd`, `effede9` (modeller) · `5fa294e` (2026-06-11, walkthrough dokümanı)
+**Commit:** `fbbe3cd`, `effede9` (models) · `5fa294e` (2026-06-11, walkthrough doc)
 
-staging → intermediate → marts (finance + ai_layer) modelleri, macro'lar, testler. `docs/dbt/pipeline-walkthrough.md` ile uçtan uca Türkçe anlatım.
+staging → intermediate → marts (finance + ai_layer) models, macros, tests. End-to-end walkthrough (in Turkish) in `docs/dbt/pipeline-walkthrough.md`.
 
-**Neden:** ham veriyi BI ve AI'nin hızlı okuyacağı martlara dönüştüren dönüşüm katmanı.
+**Why:** the transformation layer that turns raw data into marts that BI and AI can read fast.
 
-### 4. analytics-db + FDW + ai insights foundation
+### 4. analytics-db + FDW + AI insights foundation
 **Commit:** `5a24864`
 
-`postgres_fdw` kurulum SQL'i ve AI insights için foundation şeması.
+`postgres_fdw` setup SQL and the foundation schema for AI insights.
 
 ### 3. CI workflow
 **Commit:** `c82f6af`
 
-GitHub Actions: dbt parse/build/test + pytest, Postgres service container ile.
+GitHub Actions: dbt parse/build/test + pytest, with a Postgres service container.
 
-### 2 & 1. İskelet + mock-data + source-db
-**Commit:** `a1a00c9` (ve öncesi)
+### 2 & 1. Skeleton + mock-data + source-db
+**Commit:** `a1a00c9` (and earlier)
 
-İlk DB şeması, statik referans verisi, deterministik (Faker) mock-data generator.
+Initial DB schema, static reference data, deterministic (Faker) mock-data generator.
 
 ---
 
-> **Not:** Bu dosya her tamamlanan adımdan sonra güncellenir. Commit'lenmemiş bir adım "henüz commit'lenmedi" olarak işaretlenir; commit'lendiğinde hash eklenir.
+> **Note:** This file is updated after every completed step. An uncommitted step is marked "not committed yet"; the hash is added once it is committed.
