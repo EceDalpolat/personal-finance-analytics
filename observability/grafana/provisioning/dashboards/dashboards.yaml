@@ -1,0 +1,10 @@
+# Loads dashboard JSON files mounted at /var/lib/grafana/dashboards.
+
+apiVersion: 1
+
+providers:
+  - name: finance-dashboards
+    folder: Finance Analytics
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

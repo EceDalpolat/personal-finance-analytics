@@ -109,7 +109,7 @@ services:
         condition: service_healthy
     networks: [finance]
 
-  # --- observability stack: traces flow api/ai-engine -> collector -> Tempo -> Grafana ---
+  # --- observability stack: api/ai-engine -> collector -> Tempo (traces) + Prometheus (metrics) -> Grafana ---
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.119.0
     command: ["--config=/etc/otel/config.yaml"]
@@ -126,6 +126,15 @@ services:
       - tempo-data:/var/tempo
     networks: [finance]
 
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on: [otel-collector]
+    networks: [finance]
+
   grafana:
     image: grafana/grafana:11.5.2
     environment:
@@ -136,13 +145,14 @@ services:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
-    depends_on: [tempo]
+    depends_on: [tempo, prometheus]
     networks: [finance]
 
 volumes:
   source-db-data:
   analytics-db-data:
   tempo-data:
+  prometheus-data:
   grafana-data:
 
 networks:
