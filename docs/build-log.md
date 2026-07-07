@@ -19,7 +19,7 @@ Sıralama `docs/architecture.md`'deki veri akışını izler:
 ## ✅ Tamamlananlar
 
 ### 8. Observability — trace dilimi (uçtan uca)
-**Commit:** _(henüz commit'lenmedi)_
+**Commit:** `984811b` (PR #7 → `873b003` ile main'e merge)
 
 api/ai-engine → OTel collector → Tempo → Grafana trace akışı kuruldu.
 - `observability/otel-collector/config.yaml` — OTLP receiver (gRPC 4317 / HTTP 4318) → Tempo'ya `otlp/tempo` exporter (+ debug).
