@@ -18,6 +18,10 @@ services:
     ports:
       - "8001:8000"
 
+  superset:
+    ports:
+      - "8088:8088"
+
   grafana:
     ports:
       - "3000:3000"
